@@ -19,6 +19,11 @@ Set wifi SSID & password:
 
     cp wifi_credentials.template src/wifi_credentials.py
     # edit src/wifi_credentials.py and add SSID & SSID password
+
+Init:
+
+    ./setup.sh
+    make build
     
 Run:
 

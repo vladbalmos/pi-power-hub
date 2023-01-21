@@ -1,7 +1,5 @@
 import uasyncio as asyncio
-from threadsafe import ThreadSafeQueue
-import _thread
-import net
+from lib.threadsafe.threadsafe_queue import ThreadSafeQueue
 # from machine import Pin, Timer
 # import net
 # import time
@@ -28,13 +26,14 @@ import net
 #     time.sleep_ms(500)
 
 
-async def main():
-    # setup device and board
-    while True:
-        print("In here")
-        if not net.status():
-            net.connect()
-        await asyncio.sleep(0)
+# async def main():
+#     # setup device and board
+#     while True:
+#         print("In here")
+#         if not net.status():
+#             net.connect()
+#         await asyncio.sleep(0)
             
 
-asyncio.run(main())
+# asyncio.run(main())
+print("Yes");
