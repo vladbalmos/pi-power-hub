@@ -1,27 +1,40 @@
-import network
-from machine import Pin, Timer
-from device import id
-import wifi_credentials
-import utime
+import uasyncio as asyncio
+from threadsafe import ThreadSafeQueue
+import _thread
+import net
+# from machine import Pin, Timer
+# import net
+# import time
+# import device
 
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
 
-led = Pin("LED", Pin.OUT)
-_time = Timer()
+# led = Pin('LED', Pin.OUT)
+# _time = Timer()
 
-def tick(timer):
-    global led
-    global wlan
-    led.toggle()
-    print("WLAN connected", wlan.isconnected())
-    print("WLAN status", wlan.status())
-    print(wlan.ifconfig())
-    print(id)
+# def tick(timer):
+#     global led
+#     global wlan
+#     led.toggle()
+#     print("Toggling let")
     
-_time.init(freq=2.5, mode=Timer.PERIODIC, callback=tick)
+# _time.init(freq=2.5, mode=Timer.PERIODIC, callback=tick)
 
-wlan.connect(wifi_credentials.SSID, wifi_credentials.SSID_PASSWORD)
+# print(device.features)
 
-while True:
-        utime.sleep(0.2);
+# while True:
+#     if not net.status():
+#         net.connect()
+        
+#     time.sleep_ms(500)
+
+
+async def main():
+    # setup device and board
+    while True:
+        print("In here")
+        if not net.status():
+            net.connect()
+        await asyncio.sleep(0)
+            
+
+asyncio.run(main())
