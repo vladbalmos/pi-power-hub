@@ -4,7 +4,6 @@ import uselect as select
 import usocket as socket
 import wifi_credentials
 
-MAX_WIFI_CONNECT_RETRIES = 20
 PORT = 3000
 POLL_TIMEOUT = 100
 
@@ -41,17 +40,16 @@ def status():
         
     return _wlan.isconnected()
     
-def _connect_to_wifi():
+def _connect_to_wifi(max_wifi_connect_retries):
     global _wlan, _net_status
-
+    
     _wlan.connect(wifi_credentials.SSID, wifi_credentials.SSID_PASSWORD)
     
-    max_retries = MAX_WIFI_CONNECT_RETRIES
+    max_retries = max_wifi_connect_retries
 
     is_connected = False
     while max_retries > 0:
         status = _wlan.status()
-        print('WIFI status is', status_str(status))
 
         if status == network.STAT_GOT_IP:
             is_connected = True
@@ -66,7 +64,7 @@ def _connect_to_wifi():
     return is_connected
     
 
-def _setup_wifi():
+def _setup_wifi(max_retries):
     global _wlan
 
     if status():
@@ -78,7 +76,7 @@ def _setup_wifi():
     if not _wlan.active():
         _wlan.active(True)
         
-    return _connect_to_wifi()
+    return _connect_to_wifi(max_retries)
 
 
 class Server:
@@ -106,10 +104,12 @@ def _setup_server():
     if isinstance(_server, Server):
         return
         
-    _server = Server(3000)
+    # _server = Server(3000)
 
-def connect():
-    link_on = _setup_wifi()
+def connect(max_retries = 20):
+    link_on = _setup_wifi(max_retries)
     if link_on:
         _setup_server()
         
+def send(msg):
+    print('Sending', msg)

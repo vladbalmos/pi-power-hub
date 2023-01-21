@@ -1,39 +1,24 @@
+import machine
+import utime as time
 import uasyncio as asyncio
-from lib.threadsafe.threadsafe_queue import ThreadSafeQueue
-# from machine import Pin, Timer
-# import net
-# import time
-# import device
 
-
-# led = Pin('LED', Pin.OUT)
-# _time = Timer()
-
-# def tick(timer):
-#     global led
-#     global wlan
-#     led.toggle()
-#     print("Toggling let")
+async def main():
+    led = machine.Pin('LED', machine.Pin.OUT)
     
-# _time.init(freq=2.5, mode=Timer.PERIODIC, callback=tick)
-
-# print(device.features)
-
-# while True:
-#     if not net.status():
-#         net.connect()
+    while True:
+        print("In main loop")
+        led.toggle()
+        time.sleep_ms(500);
+        # Check if wifi connected and connect if not
         
-#     time.sleep_ms(500)
-
-
-# async def main():
-#     # setup device and board
-#     while True:
-#         print("In here")
-#         if not net.status():
-#             net.connect()
-#         await asyncio.sleep(0)
+        # Check for received connection messages
+        
+        # Process messages
             
+        # Periodically broadcast device state
+        
+        # Process interrupts
 
-# asyncio.run(main())
-print("Yes");
+        # asyncio.sleep_ms(500)
+        
+asyncio.run(main())
