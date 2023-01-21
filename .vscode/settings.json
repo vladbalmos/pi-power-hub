@@ -9,6 +9,7 @@
     "python.analysis.extraPaths": [
         ".vscode/Pico-W-Stub/stubs"
     ],
-    "picowgo.syncFolder": "",
-    "picowgo.openOnStart": true
+    "picowgo.syncFolder": "src",
+    "picowgo.openOnStart": false,
+    "python.analysis.autoImportCompletions": true
 }

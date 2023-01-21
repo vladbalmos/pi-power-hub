@@ -4,7 +4,6 @@ from device import id
 import wifi_credentials
 import utime
 
-
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
 
