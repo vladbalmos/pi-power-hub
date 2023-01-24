@@ -1,4 +1,4 @@
-.PHONY: run upload reset clean ls build
+.PHONY: run run-no-output monitor upload reset clean ls build
 .DEFAULT_GOAL := build
 
 SRC_DIR = src
@@ -26,6 +26,12 @@ clean:
 
 run: upload-src
 	sudo ampy --port $(PORT) run $(SRC_DIR)/$(MAIN)
+
+run-no-output: upload-src
+	sudo ampy --port $(PORT) run --no-output $(SRC_DIR)/$(MAIN)
+	
+monitor:
+	sudo minicom -o -D $(PORT) -b 115200
 	
 ls:
 	@sudo ampy --port $(PORT) ls -r

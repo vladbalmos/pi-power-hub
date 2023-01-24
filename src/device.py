@@ -1,16 +1,21 @@
+import ujson as json
+import board
+
 id = 'PI_POWER_HUB_001'
 name = 'USB Power Hub'
+
+state = None
 
 _default_feature = {
     'name': None,
     'id': None,
     'schema': {
         'type': 'boolean',
+        'default': 1
     },
     'operations': [
         {
             'action': 'toggle',
-            'default': 1
         }
     ]
 }
@@ -53,12 +58,12 @@ when the device powers off it will turn off all the ports (excludes ports define
    ''',
     'id': 'power_depends_on_usb_input',
     'schema': {
-        'type': 'boolean'
+        'type': 'boolean',
+        'default': 1
     },
     'operations': [
         {
             'action': 'toggle',
-            'default': 1
         }
     ]
 })
@@ -96,3 +101,38 @@ features.append({
         }
     ]
 })
+
+def init_state():
+    global state
+
+    board.init_gpio()
+    try:
+        with open("state.json") as state:
+            contents = state.read()
+            state = json.loads(contents)
+    except:
+        print("No last state found. Initializing using default values")
+        state = features.copy()
+
+    board.restore_state(state)
+    
+def update(feature_id, config):
+    global state
+
+    found_feature = None
+    for feature in state:
+        if feature_id != feature['id']:
+            continue
+        found_feature = feature
+        break
+    
+    if found_feature is None:
+        print(f"Feature not found {feature_id}")
+        return
+    
+    # if boolean, just set value and update board
+    found_feature.value = config.value
+    board.update(feature_id)
+    
+    # if is string, config has operation and value
+    
