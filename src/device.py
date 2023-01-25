@@ -37,16 +37,13 @@ features.append({
     'id': 'always_on_list',
     'schema': {
         'type': 'list',
-        'item': 'string'
+        'item': 'string',
+        'valid_values': _always_on_valid_values,
+        'multiple': True
     },
     'operations': [
         {
-            'action': 'set',
-            'params_schema':  {
-                'type': 'list',
-                'item': 'string',
-                'values': _always_on_valid_values
-            }
+            'action': 'set'
         }
     ]
 })
@@ -74,30 +71,21 @@ features.append({
     'schema': {
         'type': 'list',
         'item': {
-            'port': 'string',
+            'id': 'id',
+            'port': {
+                'type': 'string',
+                'valid_values': _always_on_valid_values
+            },
             'state': 'boolean',
             'time': 'cron'
         }
     },
     'operations': [
         {
-            'action': 'add_rule',
-            'params_schema': {
-                'port': {
-                    'criteria': 'any',
-                    'values': _always_on_valid_values
-                },
-                'state': {
-                    'values': [0, 1]
-                },
-                'time': {
-                    'values': 'cron'
-                }
-            }
+            'action': 'add_item',
         },
         {
-            'action': 'delete_rule',
-            'params_schema': 'string'
+            'action': 'delete_item',
         }
     ]
 })
