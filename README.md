@@ -11,9 +11,9 @@ Build micropython:
     make -C mpy-cross
 
     cd [mycropython-dir]/ports/rp2
-    make BOARD=PICO_W submodules
-    make BOARD=PICO_W clean
-    make BOARD=PICO_W
+    make -j4 BOARD=PICO_W submodules
+    make -j4 BOARD=PICO_W clean
+    make -j4 BOARD=PICO_W
     
 Set wifi SSID & password:
 
