@@ -12,12 +12,7 @@ _default_feature = {
     'schema': {
         'type': 'boolean',
         'default': 1
-    },
-    'operations': [
-        {
-            'action': 'toggle',
-        }
-    ]
+    }
 }
 
 features = []
@@ -40,12 +35,7 @@ features.append({
         'item': 'string',
         'valid_values': _always_on_valid_values,
         'multiple': True
-    },
-    'operations': [
-        {
-            'action': 'set'
-        }
-    ]
+    }
 })
     
 features.append({
@@ -57,12 +47,7 @@ when the device powers off it will turn off all the ports (excludes ports define
     'schema': {
         'type': 'boolean',
         'default': 1
-    },
-    'operations': [
-        {
-            'action': 'toggle',
-        }
-    ]
+    }
 })
 
 features.append({
@@ -71,23 +56,21 @@ features.append({
     'schema': {
         'type': 'list',
         'item': {
-            'id': 'id',
+            'id': {
+                'type': 'id'
+            },
             'port': {
                 'type': 'string',
                 'valid_values': _always_on_valid_values
             },
-            'state': 'boolean',
-            'time': 'cron'
+            'time': {
+                'type': 'cron'
+            },
+            'state': {
+                'type': 'boolean'
+            },
         }
-    },
-    'operations': [
-        {
-            'action': 'add_item',
-        },
-        {
-            'action': 'delete_item',
-        }
-    ]
+    }
 })
 
 def init_state():
