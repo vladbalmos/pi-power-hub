@@ -68,7 +68,7 @@ features.append({
             },
             'state': {
                 'type': 'boolean'
-            },
+            }
         }
     }
 })

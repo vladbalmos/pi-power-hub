@@ -3,26 +3,28 @@ import utime as time
 import network
 import uselect as select
 import usocket as socket
-import ujson as json
-import urequests
+import urequests as requests
 from lib.primitives.queue import Queue
 import wifi_credentials
 
 PORT = 3000
-MAX_QUEUE_SIZE = 32
-READ_POLL_TIMEOUT = 20
-LOOP_TIMEOUT = 50
+MAX_QUEUE_SIZE = 128
+NET_LOOP_TIMEOUT = 500
+READ_POLL_TIMEOUT = 1
+LOOP_TIMEOUT = 1
 UDP_SERVER_PORT = 6000
 
-_http_to_server_q = None
-_http_from_server_q = None
+_wlan = None
+
+_main_msg_queue = None
 _udp_read_q = Queue(MAX_QUEUE_SIZE)
 _udp_write_q = Queue(MAX_QUEUE_SIZE)
-_server = None
+_udp_server = None
 _net_status = None
-_wlan = None
 _device_registration_info = {}
 _http_server_address = None
+
+_processed_messages = []
 
 def status_str(status):
     if status == network.STAT_CONNECT_FAIL:
@@ -99,7 +101,6 @@ async def _setup_wifi(max_retries):
         
     return await _connect_to_wifi(max_retries)
 
-
 class Server:
 
     def __init__(self, port):
@@ -107,28 +108,31 @@ class Server:
         self._port = port
         self._addrinfo = socket.getaddrinfo('0.0.0.0', PORT, socket.AF_INET, socket.SOCK_DGRAM)
         self._local_address = self._addrinfo[0][-1]
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self._socket.bind(self._local_address)
+        self._read_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._read_socket.setblocking(False)
+        self._read_socket.bind(self._local_address)
         self._read_poller = select.poll()
-        self._read_poller.register(self._socket, select.POLLIN)
-        
+        self._read_poller.register(self._read_socket, select.POLLIN)
+
+        self._write_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._write_socket.setblocking(False)
         self._broadcast_address = socket.getaddrinfo('255.255.255.255', UDP_SERVER_PORT, socket.AF_INET, socket.SOCK_DGRAM)[0][-1]
 
         
-    async def start(self):
-        global _udp_write_q, _udp_read_q
+    async def read_loop(self):
+        global _udp_read_q
         while True:
             result = self._read_poller.poll(READ_POLL_TIMEOUT)
             if len(result):
-                start = time.ticks_ms()
                 for _ in result:
-                    data = self._socket.recv(1024)
+                    data = self._read_socket.recv(128)
                     await _udp_read_q.put(data)
-                duration = time.ticks_ms() - start
                 
-                if duration < READ_POLL_TIMEOUT:
-                    await asyncio.sleep_ms(READ_POLL_TIMEOUT - duration)
-                    
+            await asyncio.sleep_ms(LOOP_TIMEOUT)
+
+    async def write_loop(self):
+        global _udp_write_q
+        while True:
             while _udp_write_q.qsize():
                 to_send = _udp_write_q.get_nowait()
                 await self.send(to_send)
@@ -142,7 +146,7 @@ class Server:
         max_send_retries = 5
         while max_send_retries > 0:
             try:
-                self._socket.sendto(msg, self._broadcast_address)
+                self._write_socket.sendto(msg, self._broadcast_address)
                 break
             except Exception as e:
                 max_send_retries -= 1
@@ -150,35 +154,60 @@ class Server:
                 await connect()
    
 def _setup_server():
-    global _server
+    global _udp_server
     
-    if isinstance(_server, Server):
+    if isinstance(_udp_server, Server):
         return
         
-    _server = Server(3000)
+    _udp_server = Server(3000)
 
 async def connect(max_retries = 20):
     link_on = await _setup_wifi(max_retries)
     if link_on:
         _setup_server()
         
-async def register(url, port):
+def url(_url):
     global _http_server_address
+    x = f'{_http_server_address}{_url}'
+    return x
 
-    print(url, port)
-    _http_server_address = ':'.join((url, port))
-    print('Registering with server', _http_server_address)
-    
-    print(f'http://{_http_server_address}/device/reg')
+def postRequest(url, data = None):
     try:
-        response = urequests.post(f'http://{_http_server_address}/device/reg', json = _device_registration_info)
-        await _http_from_server_q.put(response.json())
+        response = requests.post(url, json = data, timeout = 1)
+        return response.json()
     except Exception as e:
-        print("Caught device registration exception")
+        print("Caught request exception")
         print(e)
         
-async def request_state_update(feature_id):
-    print(f'Requesting state update for feature {feature_id}')
+def getRequest(url):
+    try:
+        response = requests.get(url, timeout = 1)
+        return response.json()
+    except Exception as e:
+        print("Caught request exception")
+        print(e)
+        
+async def register(_url, port):
+    global _http_server_address 
+    _http_server_address = 'http://' + ':'.join((_url, port))
+    print('Registering')
+
+    postRequest(url('/device/reg'), _device_registration_info)
+        
+async def request_state_update(msg_id, feature_id):
+    global _processed_messages
+    if msg_id in _processed_messages:
+        return
+
+    _processed_messages.append(msg_id)
+
+    while len(_processed_messages) > 32:
+        _processed_messages.pop(0)
+        
+    print(f'Requesting state update for feature {msg_id}:{_device_registration_info['id']}:{feature_id}')
+    _url = f'/device/update?did={_device_registration_info['id']}&fid={feature_id}'
+    response = getRequest(url(_url))
+    print(response)
         
 async def process_udp_message(msg):
     msg = msg.decode('ascii')
@@ -186,8 +215,16 @@ async def process_udp_message(msg):
     prefix = msg_segments[0]
     msg = msg_segments[1:]
     
+    
     if prefix == 'hub@':
+        print('registetring')
         return await register(*msg)
+    
+    if prefix != _device_registration_info['id']:
+        return
+    
+    prefix = msg[0]
+    msg = msg[1:]
     
     if prefix == 'request_state_update':
         return await request_state_update(*msg)
@@ -200,31 +237,26 @@ def set_registration_info(did, dname, dfeatures):
         'features': dfeatures
     }
     
-def send_http_msg(msg):
-    pass
     
-        
-async def net_loop(http_to_server_q, http_from_server_q):
-    global _udp_write_q, _udp_read_q, _server, \
-           _http_from_server_q, _http_to_server_q
+async def net_loop(main_queue):
+    global _udp_write_q, _udp_read_q, _udp_server, _main_msg_queue
     
-    _http_to_server_q = http_to_server_q
-    _http_from_server_q = http_from_server_q
+    _main_msg_queue = main_queue
 
-    asyncio.create_task(_server.start())
+    asyncio.create_task(_udp_server.read_loop())
+    asyncio.create_task(_udp_server.write_loop())
     
+    last_hub_query = None
     while True:
-        # TODO: send registration request every 5 seconds
-        await _udp_write_q.put("request:whereareyou")
+        if last_hub_query is None or (time.time() - last_hub_query) > 7:
+            last_hub_query = time.time()
+            await _udp_write_q.put('request:whereareyou')
+            continue
         
         while _udp_read_q.qsize():
             msg = _udp_read_q.get_nowait()
             await process_udp_message(msg)
-            
-        while _http_to_server_q.qsize():
-            msg = _http_from_server_q.get_nowait()
-            send_http_msg(msg)
-            
-        await asyncio.sleep(1);
+
+        await asyncio.sleep_ms(NET_LOOP_TIMEOUT);
 
         
