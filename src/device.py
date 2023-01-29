@@ -80,9 +80,12 @@ def init_state():
     try:
         with open("state.json") as state:
             contents = state.read()
+            print(contents)
             state = json.loads(contents)
-    except:
+            print("Loading previous state")
+    except Exception as e:
         print("No last state found. Initializing using default values")
+        print(e)
         state = features.copy()
 
     board.restore_state(state)
@@ -101,16 +104,18 @@ def update(feature_id, value):
         print(f"Feature not found {feature_id}")
         return
     
+    
+    return_value = None
     if found_feature['schema']['type'] == 'boolean' or feature_id == 'always_on_list':
         found_feature['value'] = value
-        return value
+        return_value = value
     elif feature_id == 'schedule_power_toggle':
         if value['operation'] == 'add':
             if 'value' not in found_feature:
                 found_feature['value'] = []
                 
-            for f in found_feature['value']:
-                if f['port'] == value['value']['port'] and f['time'] == value['value']['time'] and f['state'] == value['value']['state']:
+            for item in found_feature['value']:
+                if item['port'] == value['value']['port'] and item['time'] == value['value']['time'] and item['state'] == value['value']['state']:
                     return 
                 
             item = {
@@ -121,6 +126,28 @@ def update(feature_id, value):
             }
             
             found_feature['value'].append(item)
-            return found_feature['value']
+            return_value = found_feature['value']
+        
+        if value['operation'] == 'delete':
+            if 'value' not in found_feature:
+                return
+            
+            for item in found_feature['value']:
+                if item['id'] == value['value']:
+                    found_feature['value'].pop(value['value'])
+                    
+            return_value = found_feature['value']
+            
+    if return_value is None:
+        return
+    
+    try:
+        with open('state.json', 'w') as state_file:
+            state_file.write(json.dumps(state))
+            
+        return return_value
+    except Exception as e:
+        print("Unable to save state")
+        print(e)
         
     # todo: UPDATE board

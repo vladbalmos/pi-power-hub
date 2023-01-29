@@ -12,7 +12,7 @@ async def main():
 
     msg_queue = Queue(net.MAX_QUEUE_SIZE)
     
-    net.set_registration_info(device.id, device.name, device.features)
+    net.set_registration_info(device.id, device.name, device.state)
     
     if not net.status():
         await net.connect()
@@ -38,8 +38,7 @@ async def main():
                     net.send_change_confirmation(msg['feature_id'], new_state)
             
         # check every second if a cron rule is in effect and update board appropriately
-        await asyncio.sleep_ms(500)
-        print("main loop iteration")
+        await asyncio.sleep_ms(100)
         
 asyncio.run(main())
 asyncio.new_event_loop()
