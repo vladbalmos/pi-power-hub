@@ -24,8 +24,9 @@ clean:
 	sudo ampy --port $(PORT) rm lib/threadsafe
 	sudo ampy --port $(PORT) rm lib
 
-run: upload-src
-	sudo ampy --port $(PORT) run $(SRC_DIR)/$(MAIN)
+run: upload-src reset
+	sleep 1
+	sudo minicom -o -D $(PORT) -b 115200
 
 run-no-output: upload-src
 	sudo ampy --port $(PORT) run --no-output $(SRC_DIR)/$(MAIN)

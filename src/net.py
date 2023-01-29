@@ -190,7 +190,6 @@ def getRequest(url):
 async def register(_url, port):
     global _http_server_address 
     _http_server_address = 'http://' + ':'.join((_url, port))
-    print('Registering')
 
     postRequest(url('/device/reg'), _device_registration_info)
         
@@ -211,13 +210,18 @@ async def request_state_update(msg_id, feature_id):
     if response is None or response['status'] == False:
         return
     
-    payload = {
-        "action": "update_feature",
-        "feature_id": feature_id,
-        "value": response['value']
-    }
-    
-    await _main_msg_queue.put(payload)
+    try:
+        payload = {
+            "action": "update_feature",
+            "feature_id": feature_id,
+            "value": response['value']
+        }
+        
+        await _main_msg_queue.put(payload)
+    except Exception as e:
+        print(response)
+        print(e)
+        
         
 async def process_udp_message(msg):
     msg = msg.decode('ascii')
@@ -246,6 +250,10 @@ def set_registration_info(did, dname, dfeatures):
         'features': dfeatures
     }
     
+def send_change_confirmation(feature_id, data):
+    _url = f'/device/update?did={_device_registration_info['id']}&fid={feature_id}'
+    postRequest(url(_url), {"data": data})
+    
     
 async def net_loop(main_queue):
     global _udp_write_q, _udp_read_q, _udp_server, _main_msg_queue
@@ -267,5 +275,4 @@ async def net_loop(main_queue):
             await process_udp_message(msg)
 
         await asyncio.sleep_ms(NET_LOOP_TIMEOUT);
-
         

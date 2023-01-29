@@ -87,7 +87,7 @@ def init_state():
 
     board.restore_state(state)
     
-def update(feature_id, config):
+def update(feature_id, value):
     global state
 
     found_feature = None
@@ -101,9 +101,26 @@ def update(feature_id, config):
         print(f"Feature not found {feature_id}")
         return
     
-    # if boolean, just set value and update board
-    found_feature.value = config.value
-    board.update(feature_id)
-    
-    # if is string, config has operation and value
-    
+    if found_feature['schema']['type'] == 'boolean' or feature_id == 'always_on_list':
+        found_feature['value'] = value
+        return value
+    elif feature_id == 'schedule_power_toggle':
+        if value['operation'] == 'add':
+            if 'value' not in found_feature:
+                found_feature['value'] = []
+                
+            for f in found_feature['value']:
+                if f['port'] == value['value']['port'] and f['time'] == value['value']['time'] and f['state'] == value['value']['state']:
+                    return 
+                
+            item = {
+                'id': len(found_feature['value']),
+                'port': value['value']['port'],
+                'time': value['value']['time'],
+                'state': value['value']['state']
+            }
+            
+            found_feature['value'].append(item)
+            return found_feature['value']
+        
+    # todo: UPDATE board

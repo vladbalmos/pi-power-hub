@@ -32,6 +32,11 @@ async def main():
             msg = msg_queue.get_nowait()
             print("Received message from server", msg)
             
+            if msg['action'] == 'update_feature':
+                new_state = device.update(msg['feature_id'], msg['value'])
+                if new_state is not None:
+                    net.send_change_confirmation(msg['feature_id'], new_state)
+            
         # check every second if a cron rule is in effect and update board appropriately
         await asyncio.sleep_ms(500)
         print("main loop iteration")
