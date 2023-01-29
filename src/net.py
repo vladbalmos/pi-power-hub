@@ -196,6 +196,7 @@ async def register(_url, port):
         
 async def request_state_update(msg_id, feature_id):
     global _processed_messages
+    global _main_msg_queue
     if msg_id in _processed_messages:
         return
 
@@ -204,10 +205,19 @@ async def request_state_update(msg_id, feature_id):
     while len(_processed_messages) > 32:
         _processed_messages.pop(0)
         
-    print(f'Requesting state update for feature {msg_id}:{_device_registration_info['id']}:{feature_id}')
     _url = f'/device/update?did={_device_registration_info['id']}&fid={feature_id}'
     response = getRequest(url(_url))
-    print(response)
+    
+    if response is None or response['status'] == False:
+        return
+    
+    payload = {
+        "action": "update_feature",
+        "feature_id": feature_id,
+        "value": response['value']
+    }
+    
+    await _main_msg_queue.put(payload)
         
 async def process_udp_message(msg):
     msg = msg.decode('ascii')
@@ -217,7 +227,6 @@ async def process_udp_message(msg):
     
     
     if prefix == 'hub@':
-        print('registetring')
         return await register(*msg)
     
     if prefix != _device_registration_info['id']:
