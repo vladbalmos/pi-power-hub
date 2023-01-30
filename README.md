@@ -41,3 +41,17 @@ Build
 
     make build
     
+    
+# TODO
+* add reset btn to clear device state
+* add btn for each port to manual toggle power
+
+# Topics
+* vb/devices/power/pihub/request
+    - device subscribes for state change requests
+* vb/devices/power/pihub/response
+    - device publishes state changes
+* vb/devices/request
+    - device subscribes for registration requests
+* vb/devices/response
+    - device publishes device registration data
