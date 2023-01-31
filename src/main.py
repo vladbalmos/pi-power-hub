@@ -8,34 +8,26 @@ import device
 async def main():
     led = machine.Pin('LED', machine.Pin.OUT)
 
-    # device.init_state()
-
-    # msg_queue = Queue(net.MAX_QUEUE_SIZE)
+    device_registration = device.init_state()
+    msg_queue = Queue(32)
     
-    # net.set_registration_info(device.id, device.name, device.state)
+    await net.init(device_registration, msg_queue)
     
-    # if not net.status():
-        # await net.connect()
-        
-    # asyncio.create_task(net.net_loop(msg_queue))
-    # TODO: based on wifi connection status, set the correct led status color
-    # TODO: On init send current state
-
     while True:
         led.toggle()
         
-        # while msg_queue.qsize():
-            # If state is received from server, update board and store configuration
-            # msg = msg_queue.get_nowait()
-            # print("Received message from server", msg)
+        # get msg from queue
+            # process msg
             
-            # if msg['action'] == 'update_feature':
-            #     new_state = device.update(msg['feature_id'], msg['value'])
-            #     if new_state is not None:
-            #         net.send_change_confirmation(msg['feature_id'], new_state)
+        # if device changed state
+            # net.publish(new state)
             
-        # check every second if a cron rule is in effect and update board appropriately
-        await asyncio.sleep_ms(100)
+        # if shutdown_on_usb_input
+            # poll usb_input
+            # if off, turn off
+            # net.publish(new state)
+        
+        await asyncio.sleep_ms(500)
         
 asyncio.run(main())
 asyncio.new_event_loop()

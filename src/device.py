@@ -89,6 +89,7 @@ def init_state():
         state = features.copy()
 
     board.restore_state(state)
+    return { 'id': id, 'name': name, 'state': state }
     
 def update(feature_id, value):
     global state
