@@ -86,7 +86,7 @@ async def up(client):
 async def messages(client):
     global _main_msg_queue
 
-    async for topic, msg, retained in client.queue:
+    async for topic, msg in client.queue:
         if topic == _subscription_topics['manager']:
             await register_device()
             continue
