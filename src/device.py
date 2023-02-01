@@ -50,29 +50,6 @@ when the device powers off it will turn off all the ports (excludes ports define
     }
 })
 
-features.append({
-    'name': 'Schedule power on/off',
-    'id': 'schedule_power_toggle',
-    'schema': {
-        'type': 'list',
-        'item': {
-            'id': {
-                'type': 'id'
-            },
-            'port': {
-                'type': 'string',
-                'valid_values': _always_on_valid_values
-            },
-            'time': {
-                'type': 'cron'
-            },
-            'state': {
-                'type': 'boolean'
-            }
-        }
-    }
-})
-
 def init_state():
     global state
 
@@ -80,7 +57,6 @@ def init_state():
     try:
         with open("state.json") as state:
             contents = state.read()
-            print(contents)
             state = json.loads(contents)
             print("Loading previous state")
     except Exception as e:
@@ -89,11 +65,20 @@ def init_state():
         state = features.copy()
 
     board.restore_state(state)
-    return { 'id': id, 'name': name, 'state': state }
-    
-def update(feature_id, value):
-    global state
+    return { 'id': id, 'name': name, 'features': state }
 
+def has_feature(id):
+    for f in features:
+        if f['id'] == id:
+            return True
+    
+    return False
+
+def update(data):
+    global state
+    
+    feature_id = data['featureId']
+    
     found_feature = None
     for feature in state:
         if feature_id != feature['id']:
@@ -103,52 +88,28 @@ def update(feature_id, value):
     
     if found_feature is None:
         print(f"Feature not found {feature_id}")
-        return
+        return (None, None)
     
+    value = data['state']
     
     return_value = None
     if found_feature['schema']['type'] == 'boolean' or feature_id == 'always_on_list':
         found_feature['value'] = value
         return_value = value
-    elif feature_id == 'schedule_power_toggle':
-        if value['operation'] == 'add':
-            if 'value' not in found_feature:
-                found_feature['value'] = []
-                
-            for item in found_feature['value']:
-                if item['port'] == value['value']['port'] and item['time'] == value['value']['time'] and item['state'] == value['value']['state']:
-                    return 
-                
-            item = {
-                'id': len(found_feature['value']),
-                'port': value['value']['port'],
-                'time': value['value']['time'],
-                'state': value['value']['state']
-            }
-            
-            found_feature['value'].append(item)
-            return_value = found_feature['value']
-        
-        if value['operation'] == 'delete':
-            if 'value' not in found_feature:
-                return
-            
-            for item in found_feature['value']:
-                if item['id'] == value['value']:
-                    found_feature['value'].pop(value['value'])
-                    
-            return_value = found_feature['value']
             
     if return_value is None:
-        return
+        print("Unsupported feature type")
+        return (None, None)
     
     try:
         with open('state.json', 'w') as state_file:
             state_file.write(json.dumps(state))
             
-        return return_value
+        print(f'Updated {feature_id} to {return_value}')
+        return (feature_id, return_value)
     except Exception as e:
         print("Unable to save state")
         print(e)
         
+    return (None, None)
     # todo: UPDATE board
