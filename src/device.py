@@ -1,10 +1,11 @@
-import ujson as json
 import board
+import uasyncio as asyncio
+import ujson as json
 
 id = 'PI_POWER_HUB_001'
 name = 'USB Power Hub'
-
 state = None
+_state_changes_queue = None
 
 _default_feature = {
     'name': None,
@@ -50,10 +51,11 @@ when the device powers off it will turn off all the ports (excludes ports define
     }
 })
 
-def init_state():
-    global state
+def init_state(queue):
+    global state, _state_changes_queue
+    
+    _state_changes_queue = queue
 
-    board.init_gpio()
     try:
         with open("state.json") as state:
             contents = state.read()
@@ -66,6 +68,52 @@ def init_state():
 
     board.restore_state(state)
     return { 'id': id, 'name': name, 'features': state }
+
+def toggle_port(port_id):
+    global state
+    # TODO: don't toggle always on ports
+    for f in state:
+        if f['id'] != port_id:
+            continue
+        
+        if 'value' in f:
+            current_value = f['value']
+        else:
+            current_value = f['schema']['default']
+            
+        new_value = not current_value
+        f['value'] = new_value
+
+        return (port_id, new_value)
+
+    return (None, None)
+
+async def poll_inputs():
+    global _state_changes_queue
+    while True:
+        changes = board.get_changed_inputs()
+        await asyncio.sleep_ms(50)
+        if not len(changes):
+            continue
+        
+        state_changes = []
+        for (input, value) in changes:
+            if not value:
+                continue
+            
+            if input != 'usb_in':
+                feature_id, state = toggle_port(input)
+                if feature_id:
+                    state_changes.append((feature_id, state))
+                    if _state_changes_queue.full():
+                        _state_changes_queue.make_room()
+                    _state_changes_queue.put_nowait((feature_id, state))
+
+        save_state()
+        
+        if len(state_changes):
+            for (feature_id, state) in state_changes:
+                board.update(feature_id, state)
 
 def has_feature(id):
     for f in features:
@@ -101,15 +149,20 @@ def update(data):
         print("Unsupported feature type")
         return (None, None)
     
+    result = save_state()
+    if result:
+        print(f'Updated {feature_id} to {return_value}')
+        board.update(feature_id, return_value)
+        return (feature_id, return_value)
+
+    return (None, None)
+
+def save_state():
     try:
         with open('state.json', 'w') as state_file:
             state_file.write(json.dumps(state))
-            
-        print(f'Updated {feature_id} to {return_value}')
-        return (feature_id, return_value)
+        return True
     except Exception as e:
         print("Unable to save state")
         print(e)
-        
-    return (None, None)
-    # todo: UPDATE board
+        return False

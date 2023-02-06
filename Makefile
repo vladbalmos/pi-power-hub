@@ -23,6 +23,9 @@ clean:
 	sudo ampy --port $(PORT) rm lib/primitives
 	sudo ampy --port $(PORT) rm lib/threadsafe
 	sudo ampy --port $(PORT) rm lib
+	
+clear-state:
+	sudo ampy --port $(PORT) rm state.json
 
 run: upload-src reset
 	sleep 1

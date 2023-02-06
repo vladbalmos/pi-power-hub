@@ -86,7 +86,10 @@ async def up(client):
 async def messages(client):
     global _main_msg_queue
 
-    async for topic, msg in client.queue:
+    async for item in client.queue:
+        print(item)
+        topic = item[0]
+        msg = item[1]
         if topic == _subscription_topics['manager']:
             await register_device()
             continue
