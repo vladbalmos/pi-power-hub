@@ -26,6 +26,28 @@ for i in range(1, 7):
     
     _always_on_valid_values.append(f['id'])
     features.append(f)
+
+features.append({
+    'name': 'Toggle all ports on/off',
+    'description': 'Shortcut for powering on all ports',
+    'id': 'toggle_all',
+    'schema': {
+        'type': 'boolean',
+        'default': 1
+    }
+})
+
+features.append({
+    'name': 'Turn off ports when input USB device is OFF',
+    'description': '''If a device is connected to the input port and it is powered on,
+when the device powers off it will turn off all the ports (excludes ports defined in the "always on" list)
+   ''',
+    'id': 'power_depends_on_usb_input',
+    'schema': {
+        'type': 'boolean',
+        'default': 1
+    }
+})
     
 features.append({
     'name': 'Always ON ports list',
@@ -39,17 +61,17 @@ features.append({
     }
 })
     
-features.append({
-    'name': 'Turn off ports when input USB device is OFF',
-    'description': '''If a device is connected to the input port and it is powered on,
-when the device powers off it will turn off all the ports (excludes ports defined in the "always on" list)
-   ''',
-    'id': 'power_depends_on_usb_input',
-    'schema': {
-        'type': 'boolean',
-        'default': 1
-    }
-})
+
+
+def should_turn_off_ports():
+    for f in features:
+        if f['id'] != 'power_depends_on_usb_input':
+            continue
+        
+        if 'value' in f:
+            return f['value']
+        else:
+            return f['schema']['default']
 
 def init_state(queue):
     global state, _state_changes_queue
@@ -81,7 +103,7 @@ def toggle_port(port_id):
         else:
             current_value = f['schema']['default']
             
-        new_value = not current_value
+        new_value = int(not current_value)
         f['value'] = new_value
 
         return (port_id, new_value)
@@ -98,16 +120,20 @@ async def poll_inputs():
         
         state_changes = []
         for (input, value) in changes:
-            if not value:
-                continue
-            
             if input != 'usb_in':
+                if not value:
+                    continue
+
                 feature_id, state = toggle_port(input)
                 if feature_id:
                     state_changes.append((feature_id, state))
                     if _state_changes_queue.full():
                         _state_changes_queue.make_room()
                     _state_changes_queue.put_nowait((feature_id, state))
+            else:
+                if not value and should_turn_off_ports():
+                    board.turn_off_all()
+                    
 
         save_state()
         
@@ -121,6 +147,19 @@ def has_feature(id):
             return True
     
     return False
+
+def toggle_all(value):
+    global state
+
+    changes = [('toggle_all', value)]
+    for feature in state:
+        if 'port_' in feature['id']:
+            feature['value'] = value
+            board.update(feature['id'], value)
+            changes.append((feature['id'], value))
+
+    save_state()
+    return changes
 
 def update(data):
     global state
@@ -136,7 +175,7 @@ def update(data):
     
     if found_feature is None:
         print(f"Feature not found {feature_id}")
-        return (None, None)
+        return [(None, None)]
     
     value = data['state']
     
@@ -144,18 +183,23 @@ def update(data):
     if found_feature['schema']['type'] == 'boolean' or feature_id == 'always_on_list':
         found_feature['value'] = value
         return_value = value
-            
+
+    if feature_id == 'toggle_all':
+        print('Turning on all ports')
+        return toggle_all(value)
+
     if return_value is None:
         print("Unsupported feature type")
-        return (None, None)
+        return [(None, None)]
     
     result = save_state()
     if result:
         print(f'Updated {feature_id} to {return_value}')
-        board.update(feature_id, return_value)
-        return (feature_id, return_value)
+        if 'port_' in feature_id:
+            board.update(feature_id, return_value)
+        return [(feature_id, return_value)]
 
-    return (None, None)
+    return [(None, None)]
 
 def save_state():
     try:

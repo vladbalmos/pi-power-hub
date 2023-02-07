@@ -23,9 +23,6 @@ input_pins_values = []
 output_ports = []
 input_ports = []
 
-def switch_toggle_handler(change):
-    print('Switch detected', change)
-
 for p in output_pins:
     pin = Pin(p, Pin.OUT)
     pin.on()
@@ -33,13 +30,28 @@ for p in output_pins:
     
 for p in input_pins:
     pin = Pin(p, Pin.IN, Pin.PULL_DOWN)
-    input_pins_values.append(pin.value())
+    value = pin.value()
+    
+    input_pins_values.append(value)
     input_ports.append(pin)
 
 def restore_state(state):
+    always_on_ports = list(filter(lambda item: item['id'] == 'always_on_list', state))
+
+    if len(always_on_ports):
+        always_on_ports = always_on_ports.pop()
+        if 'value' in always_on_ports:
+            always_on_ports = always_on_ports['value']
+        else:
+            always_on_ports = []
+    else:
+        always_on_ports = []
+
     for feature in state:
         if 'port_' in feature['id']:
-            if 'value' in feature:
+            if feature['id'] in always_on_ports:
+                value = 1
+            elif 'value' in feature:
                 value = int(feature['value'])
             else:
                 value = int(feature['schema']['default'])
@@ -55,7 +67,7 @@ def get_changed_inputs():
     for p in input_ports:
         value = p.value()
         if index == len(input_pins) - 1:
-            key = 'ubs_in'
+            key = 'usb_in'
         else:
             key = f'port_{index}'
 

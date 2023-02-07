@@ -41,8 +41,10 @@ async def main():
         if not msg_queue.empty():
             msg = msg_queue.get_nowait()
             if valid_state_update_request(msg):
-                feature_id, new_state = device.update(msg['payload'])
-                net.queue_state_publishing(feature_id, new_state)
+                updates = device.update(msg['payload'])
+                for (feature_id, new_state) in updates:
+                    if feature_id is not None:
+                        net.queue_state_publishing(feature_id, new_state)
             
         while not device_queue.empty():
             led.toggle()
