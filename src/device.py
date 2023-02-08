@@ -118,35 +118,29 @@ async def poll_inputs():
         if not len(changes):
             continue
         
+        skip_save_state = False
         state_changes = []
         for (input, value) in changes:
             if input != 'usb_in':
                 if not value:
                     continue
 
-                feature_id, state = toggle_port(input)
+                feature_id, port_state = toggle_port(input)
                 if feature_id:
-                    state_changes.append((feature_id, state))
-                    if _state_changes_queue.full():
-                        _state_changes_queue.make_room()
-                    _state_changes_queue.put_nowait((feature_id, state))
+                    state_changes.append((feature_id, port_state))
             else:
-                # TODO: refactor this
                 if not value and should_turn_off_ports():
                     state_changes = toggle_all(0)
+                    skip_save_state = True
                     
-                    if len(state_changes):
-                        for (feature_id, state) in state_changes:
-                            if _state_changes_queue.full():
-                                _state_changes_queue.make_room()
-                            _state_changes_queue.put_nowait((feature_id, state))
-                    continue
+        if not skip_save_state:
+            save_state()
 
-                    
-
-        save_state()
         if len(state_changes):
             for (feature_id, state) in state_changes:
+                if _state_changes_queue.full():
+                    _state_changes_queue.make_room()
+                _state_changes_queue.put_nowait((feature_id, state))
                 board.update(feature_id, state)
 
 def has_feature(id):
