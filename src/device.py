@@ -64,7 +64,7 @@ features.append({
 
 
 def should_turn_off_ports():
-    for f in features:
+    for f in state:
         if f['id'] != 'power_depends_on_usb_input':
             continue
         
@@ -87,7 +87,7 @@ def init_state(queue):
         print("No last state found. Initializing using default values")
         print(e)
         state = features.copy()
-
+        
     board.restore_state(state)
     return { 'id': id, 'name': name, 'features': state }
 
@@ -207,6 +207,7 @@ def update(data):
     if return_value is None:
         print("Unsupported feature type")
         return [(None, None)]
+    
     
     result = save_state()
     if result:
