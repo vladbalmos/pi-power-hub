@@ -78,5 +78,7 @@ def get_changed_inputs():
     return changes
 
 def update(port_id, state):
+    if 'port_' not in port_id:
+        return
     index = int(port_id[5:])
     output_ports[index].value(int(not state))

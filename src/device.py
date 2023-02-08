@@ -131,12 +131,20 @@ async def poll_inputs():
                         _state_changes_queue.make_room()
                     _state_changes_queue.put_nowait((feature_id, state))
             else:
+                # TODO: refactor this
                 if not value and should_turn_off_ports():
-                    board.turn_off_all()
+                    state_changes = toggle_all(0)
+                    
+                    if len(state_changes):
+                        for (feature_id, state) in state_changes:
+                            if _state_changes_queue.full():
+                                _state_changes_queue.make_room()
+                            _state_changes_queue.put_nowait((feature_id, state))
+                    continue
+
                     
 
         save_state()
-        
         if len(state_changes):
             for (feature_id, state) in state_changes:
                 board.update(feature_id, state)
@@ -151,9 +159,23 @@ def has_feature(id):
 def toggle_all(value):
     global state
 
+    # TODO: refactor this
+    always_on_ports = list(filter(lambda item: item['id'] == 'always_on_list', state))
+    if len(always_on_ports):
+        always_on_ports = always_on_ports.pop()
+        if 'value' in always_on_ports:
+            always_on_ports = always_on_ports['value']
+        else:
+            always_on_ports = []
+    else:
+        always_on_ports = []
+
     changes = [('toggle_all', value)]
     for feature in state:
         if 'port_' in feature['id']:
+            if feature['id'] in always_on_ports and not value:
+                continue
+                
             feature['value'] = value
             board.update(feature['id'], value)
             changes.append((feature['id'], value))
