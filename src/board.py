@@ -29,9 +29,9 @@ input_pins_values = []
 output_ports = []
 input_ports = []
 
-led_r = LEDColor(Pin(LED_R_PIN), 255)
-led_g = LEDColor(Pin(LED_G_PIN), 0, 128)
-led_b = LEDColor(Pin(LED_B_PIN), 0)
+led_r = LEDColor(Pin(LED_R_PIN), 255, 128)
+led_g = LEDColor(Pin(LED_G_PIN), 0, 64)
+led_b = LEDColor(Pin(LED_B_PIN), 0, 64)
 
 rgb_led_color = 'red'
 rgb_led = [led_r, led_g, led_b]
