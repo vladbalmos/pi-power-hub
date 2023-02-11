@@ -1,4 +1,5 @@
 from machine import Pin
+from led_color import LEDColor
 
 LED_R_PIN = 2
 LED_G_PIN = 3
@@ -28,13 +29,9 @@ input_pins_values = []
 output_ports = []
 input_ports = []
 
-led_r = Pin(LED_R_PIN, Pin.OUT)
-led_g = Pin(LED_G_PIN, Pin.OUT)
-led_b = Pin(LED_B_PIN, Pin.OUT)
-
-led_r.value(1)
-led_g.value(0)
-led_b.value(0)
+led_r = LEDColor(Pin(LED_R_PIN), 255)
+led_g = LEDColor(Pin(LED_G_PIN), 0, 128)
+led_b = LEDColor(Pin(LED_B_PIN), 0)
 
 rgb_led_color = 'red'
 rgb_led = [led_r, led_g, led_b]
@@ -109,15 +106,15 @@ def led_color(color):
     
     colors = [0, 0, 0]
     if color == 'red':
-        colors = [1, 0, 0]
+        colors = [255, 0, 0]
     elif color == 'blue':
-        colors = [0, 0, 1]
+        colors = [0, 0, 255]
     elif color == 'yellow':
-        colors = [1, 1, 0]
+        colors = [255, 128, 0]
     elif color == 'green':
-        colors = [0, 1, 0]
+        colors = [0, 255, 0]
     else:
-        # any other color names, turn the LED off
+        # any other color names turn the LED off
         pass
 
     rgb_led_color = color

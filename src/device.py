@@ -235,16 +235,18 @@ def led_color(color):
     
 async def blink_rgb_led():
     global _current_rgb_blinking_color
-    timeout_ms = 75
+    timeout_ms = 250
     while True:
         current_color = board.rgb_led_color
         await asyncio.sleep_ms(timeout_ms)
-        board.led_color('off')
-        await asyncio.sleep_ms(timeout_ms)
         
-        if current_color != _current_rgb_blinking_color:
-            current_color = _current_rgb_blinking_color
-        board.led_color(current_color)
+        if current_color != 'green':
+            board.led_color('off')
+            await asyncio.sleep_ms(timeout_ms)
+            
+            if current_color != _current_rgb_blinking_color:
+                current_color = _current_rgb_blinking_color
+            board.led_color(current_color)
     
 _current_rgb_blinking_color = board.rgb_led
 asyncio.create_task(blink_rgb_led())
