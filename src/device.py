@@ -2,6 +2,8 @@ import board
 import uasyncio as asyncio
 import ujson as json
 
+_current_rgb_blinking_color = None
+
 id = 'PI_POWER_HUB_001'
 name = 'USB Power Hub'
 state = None
@@ -138,8 +140,6 @@ async def poll_inputs():
 
         if len(state_changes):
             for (feature_id, state) in state_changes:
-                if _state_changes_queue.full():
-                    _state_changes_queue.make_room()
                 _state_changes_queue.put_nowait((feature_id, state))
                 board.update(feature_id, state)
 
@@ -227,3 +227,24 @@ def save_state():
         print("Unable to save state")
         print(e)
         return False
+    
+def led_color(color):
+    global _current_rgb_blinking_color
+    _current_rgb_blinking_color = color
+    board.led_color(color)
+    
+async def blink_rgb_led():
+    global _current_rgb_blinking_color
+    timeout_ms = 75
+    while True:
+        current_color = board.rgb_led_color
+        await asyncio.sleep_ms(timeout_ms)
+        board.led_color('off')
+        await asyncio.sleep_ms(timeout_ms)
+        
+        if current_color != _current_rgb_blinking_color:
+            current_color = _current_rgb_blinking_color
+        board.led_color(current_color)
+    
+_current_rgb_blinking_color = board.rgb_led
+asyncio.create_task(blink_rgb_led())

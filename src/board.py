@@ -1,5 +1,9 @@
 from machine import Pin
 
+LED_R_PIN = 2
+LED_G_PIN = 3
+LED_B_PIN = 4
+
 PORT_0 = 6
 PORT_1 = 8
 PORT_2 = 10
@@ -14,6 +18,7 @@ INPUT_3 = 20
 INPUT_4 = 18
 INPUT_5 = 16
 
+READY_PIN = 14
 USB_IN = 15
 
 output_pins = [PORT_0, PORT_1, PORT_2, PORT_3, PORT_4, PORT_5]
@@ -22,6 +27,22 @@ input_pins_values = []
 
 output_ports = []
 input_ports = []
+
+led_r = Pin(LED_R_PIN, Pin.OUT)
+led_g = Pin(LED_G_PIN, Pin.OUT)
+led_b = Pin(LED_B_PIN, Pin.OUT)
+
+led_r.value(1)
+led_g.value(0)
+led_b.value(0)
+
+rgb_led_color = 'red'
+rgb_led = [led_r, led_g, led_b]
+
+# While the board is initializing, this pin is low by default, thus sourcing current to all output port transistor
+# drivers - via a PNP transitor, preventing power flickering during board initialization
+ready_pin = Pin(READY_PIN, Pin.OUT)
+ready_pin.value(1)
 
 for p in output_pins:
     pin = Pin(p, Pin.OUT)
@@ -82,3 +103,24 @@ def update(port_id, state):
         return
     index = int(port_id[5:])
     output_ports[index].value(int(not state))
+    
+def led_color(color):
+    global rgb_led, rgb_led_color
+    
+    colors = [0, 0, 0]
+    if color == 'red':
+        colors = [1, 0, 0]
+    elif color == 'blue':
+        colors = [0, 0, 1]
+    elif color == 'yellow':
+        colors = [1, 1, 0]
+    elif color == 'green':
+        colors = [0, 1, 0]
+    else:
+        # any other color names, turn the LED off
+        pass
+
+    rgb_led_color = color
+        
+    for i in range(0, 3):
+        rgb_led[i].value(colors[i])

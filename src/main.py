@@ -1,7 +1,7 @@
 import device
 import machine
 import uasyncio as asyncio
-from lib.primitives.queue import Queue
+from queue import Queue
 import net
 
 def valid_state_update_request(msg):
@@ -29,11 +29,12 @@ async def main():
 
     msg_queue = Queue(32)
     device_queue = Queue(32)
+    net_state_queue = Queue(32)
 
     device_registration = device.init_state(device_queue)
     
     print("Initializing connection")
-    asyncio.create_task(net.init(device_registration, msg_queue))
+    asyncio.create_task(net.init(device_registration, msg_queue, net_state_queue))
     asyncio.create_task(device.poll_inputs())
     
     while True:
@@ -45,6 +46,15 @@ async def main():
                 for (feature_id, new_state) in updates:
                     if feature_id is not None:
                         net.queue_state_publishing(feature_id, new_state)
+                        
+        while not net_state_queue.empty():
+            net_state = net_state_queue.get_nowait()
+            if net_state == 'connecting':
+                device.led_color('blue')
+            elif net_state == 'up':
+                device.led_color('green')
+            else:
+                device.led_color('yellow')
             
         while not device_queue.empty():
             led.toggle()

@@ -26,6 +26,7 @@ _connect_task = None
 _initial_connection_established = False
 _device_registration_info = {}
 _main_msg_queue = None
+_net_state_queue = None
 
 async def register_device():
     global _client
@@ -54,9 +55,6 @@ async def process_publishing_queue():
 def queue_state_publishing(feature_id, new_state):
     global _publishing_queue
     
-    if _publishing_queue.full():
-        _publishing_queue.make_room()
-        
     _publishing_queue.put_nowait(json.dumps({
         'deviceId': _device_registration_info['id'],
         'featureId': feature_id,
@@ -64,8 +62,17 @@ def queue_state_publishing(feature_id, new_state):
     }))
     print("Queued new state for publishing")
 
+async def down(client):
+    global _net_state_queue
+    while True:
+        print("Waiting for connection to be down")
+        await client.down.wait()
+        client.down.clear()
+        _net_state_queue.put_nowait('down')
+        print("Connection is down")
+
 async def up(client):
-    global _initial_connection_established, _client
+    global _initial_connection_established, _client, _net_state_queue
 
     while True:
         print("Waiting for connection to be ready")
@@ -73,6 +80,8 @@ async def up(client):
         client.up.clear()
         print("Connection (re-)established")
         _client = client
+        
+        _net_state_queue.put_nowait('up')
 
         if not _initial_connection_established:
             _initial_connection_established = True
@@ -101,31 +110,32 @@ async def messages(client):
                 await asyncio.sleep_ms(100)
                 continue
             
-            if _main_msg_queue.full():
-                _main_msg_queue.make_room()
-
             _main_msg_queue.put_nowait(msg)
             await asyncio.sleep_ms(10)
             continue
             
         await asyncio.sleep_ms(100)
         
-async def init(device_registration, main_msg_queue):
+async def init(device_registration, main_msg_queue, net_state_queue):
     global _device_registration_info, \
            _client, \
            _connect_task, \
-           _main_msg_queue
+           _main_msg_queue, \
+           _net_state_queue
+            
 
     _device_registration_info = device_registration
     _main_msg_queue = main_msg_queue
+    _net_state_queue = net_state_queue
     
     while not _initial_connection_established:
         client = MQTTClient(config)
         _connect_task = asyncio.create_task(client.connect())
         try:
             print(f"Connecting to {config['server']}")
+            _net_state_queue.put_nowait('connecting')
             await _connect_task
-            for couroutine in (up, messages):
+            for couroutine in (up, down, messages):
                 asyncio.create_task(couroutine(client))
             await asyncio.sleep_ms(250)
             print(f"Connection status is: {_initial_connection_established}")
