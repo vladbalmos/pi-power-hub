@@ -5,9 +5,9 @@ LED_R_PIN = 2
 LED_G_PIN = 3
 LED_B_PIN = 4
 
-PORT_0 = 6
+PORT_0 = 10
 PORT_1 = 8
-PORT_2 = 10
+PORT_2 = 6
 PORT_3 = 21
 PORT_4 = 19
 PORT_5 = 17
