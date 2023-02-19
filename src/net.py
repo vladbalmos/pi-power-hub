@@ -6,7 +6,7 @@ from lib.mqtt_as import MQTTClient, config
 
 config['ssid'] = wifi_credentials.SSID
 config['wifi_pw'] = wifi_credentials.SSID_PASSWORD
-config['server'] = '192.168.2.77'
+config['server'] = 'pihub.local'
 config['queue_len'] = 1
 
 MQTTClient.DEBUG = True
