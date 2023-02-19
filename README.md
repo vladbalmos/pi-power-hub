@@ -42,10 +42,6 @@ Build
     make build
     
     
-# TODO
-* add reset btn to clear device state
-* add btn for each port to manual toggle power
-
 # Topics
 * vb/devices/power/pihub/request
     - device subscribes for state change requests
@@ -55,3 +51,13 @@ Build
     - device subscribes for registration requests
 * vb/devices/response
     - device publishes device registration data
+
+# Status LED meanings:
+* red
+    - board initializing
+* blue
+    - connecting to mqtt server
+* green
+    - connected to mqtt server
+* yellow
+    - lost connection to mqtt
