@@ -123,6 +123,7 @@ async def poll_inputs():
         skip_save_state = False
         state_changes = []
         for (input, value) in changes:
+            print(input, value)
             if input != 'usb_in':
                 if not value:
                     continue
