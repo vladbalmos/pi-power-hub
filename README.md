@@ -1,6 +1,6 @@
 # System requirements
 * micropython
-* ampy (pip3 install adafruit-ampy)
+* ampy
 * minicom (optional)
 
 
@@ -22,6 +22,7 @@ Set wifi SSID & password:
 
 Init:
 
+    pip3 install -r requirements.txt
     ./setup.sh
     make build
     
